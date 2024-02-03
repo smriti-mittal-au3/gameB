@@ -158,27 +158,30 @@ VOID ProcessPlayerInput()
 
 void RenderGameGraphics(void)
 {
+    LRESULT Result = 0;
     //void * Memory;
 
     GAMEBITMAPINFO gGameBitMap = { 0 };
-
-    //is it the size of bmiHeader or just bitmapInfo
-    //earlier we did sizeof the data struct but ..
-    //how will it help computer know the size now but .. size of this new data structure GAMEBITMAPINFO
+     
     gGameBitMap.bitmapinfo.bmiHeader.biSize = sizeof(gGameBitMap.bitmapinfo.bmiHeader);
     gGameBitMap.bitmapinfo.bmiHeader.biPlanes = 1;
     
-    //aspect ratio = 16:9
-    //no. of pixels 
-    gGameBitMap.bitmapinfo.bmiHeader.biWidth = 256;
-    gGameBitMap.bitmapinfo.bmiHeader.biHeight = 224;
+   
+    gGameBitMap.bitmapinfo.bmiHeader.biWidth = GAME_RES_WIDTH;
+    gGameBitMap.bitmapinfo.bmiHeader.biHeight = GAME_RES_HEIGHT;
 
-    gGameBitMap.bitmapinfo.bmiHeader.biBitCount = 16;
+    gGameBitMap.bitmapinfo.bmiHeader.biBitCount = GAME_BPP;
 
-    //why void * what is that 
-    //what is MEM_PHYSICAL =  0x00400000
-    //VirtualAlloc vs malloc
-    // /8 two times
-    gGameBitMap.Memory = VirtualAlloc(NULL, 256 * 16 / 8 * 224 * 16 / 8);
+ 
+    gGameBitMap.Memory = VirtualAlloc(NULL, GAME_DRAWING_AREA_MEMORY_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+
+    if (gGameBitMap.Memory == NULL) {
+        Result = GetLastError();
+        MessageBox(gGameWindow, "Memory not allocated!", "Error!", MB_ICONEXCLAMATION | MB_OK);
+        goto Exit;
+    }
+
+Exit:
+    return(Result);
 
 }
