@@ -22,3 +22,11 @@ typedef struct {
 	//why is it a pointer .. or it's just a pointer .. an address '
 	void* Memory;
 } GAMEBITMAPINFO;
+
+
+struct Pixel32 {
+	uint8_t Blue;
+	uint8_t Green;
+	uint8_t Red;
+	uint8_t Alpha;
+};

@@ -1,6 +1,8 @@
 #pragma warning(push, 3)
 //#pragma warning(disable : 4668)
 #include <windows.h> 
+#include <stdint.h>
+
 #pragma warning(pop)
 
 #include "main.h"
@@ -8,6 +10,8 @@
 
 BOOL gGameIsRunning = FALSE;
 HWND gGameWindow;
+GAMEBITMAPINFO gGameBitMap = { 0 };
+
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
 {
@@ -24,6 +28,31 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
         goto Exit;
     }
 
+
+    //void * Memory;
+
+
+    gGameBitMap.bitmapinfo.bmiHeader.biSize = sizeof(gGameBitMap.bitmapinfo.bmiHeader);
+    gGameBitMap.bitmapinfo.bmiHeader.biPlanes = 1;
+
+
+    gGameBitMap.bitmapinfo.bmiHeader.biWidth = GAME_RES_WIDTH;
+    gGameBitMap.bitmapinfo.bmiHeader.biHeight = GAME_RES_HEIGHT;
+
+    gGameBitMap.bitmapinfo.bmiHeader.biBitCount = GAME_BPP;
+    gGameBitMap.bitmapinfo.bmiHeader.biCompression = BI_RGB;
+
+
+    gGameBitMap.Memory = VirtualAlloc(NULL, GAME_DRAWING_AREA_MEMORY_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+    if (gGameBitMap.Memory == NULL) {
+        //Result = GetLastError();
+        MessageBox(gGameWindow, "Memory not allocated!", "Error!", MB_ICONEXCLAMATION | MB_OK);
+        goto Exit;
+    }
+
+    memset(gGameBitMap.Memory, 0x0000FF, GAME_DRAWING_AREA_MEMORY_SIZE);
+
     gGameIsRunning = TRUE;
 
     while (gGameIsRunning == TRUE)
@@ -34,6 +63,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
             DispatchMessageA(&Msg);
         }
 
+
+        RenderGameGraphics();
         // Now we can do other stuff, but why
         ProcessPlayerInput();
 
@@ -84,16 +115,17 @@ DWORD CreateMainWindow(void)
     wc.hInstance = GetModuleHandleA(NULL);
     wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wc.hbrBackground = CreateSolidBrush(RGB(0xFF, 0x00, 0xFF));
     wc.lpszMenuName = NULL;
     wc.lpszClassName = "GAME_B_WINDOW_CLASS";
     wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 
     if (RegisterClassEx(&wc) == 0)
     {
+        Result = GetLastError();
+
         MessageBox(NULL, "Window Registration Failed!", "Error!",
             MB_ICONEXCLAMATION | MB_OK);
-        Result = GetLastError();
         goto Exit;
     }
 
@@ -142,11 +174,6 @@ BOOL GameIsAlreadyRunning(void)
 
 VOID ProcessPlayerInput()
 {
-    unsigned int Overflow = 0xffffffff;
-    unsigned char cx = 255;
-    cx = 255 + 2;
-    char xx = -128;
-    xx = -128 - 1;
  
     SHORT EscapeKeyIsDown = GetAsyncKeyState(VK_ESCAPE);
     
@@ -158,30 +185,26 @@ VOID ProcessPlayerInput()
 
 void RenderGameGraphics(void)
 {
-    LRESULT Result = 0;
-    //void * Memory;
+    MONITORINFO gMonitorInfo;
+    gMonitorInfo.cbSize = sizeof(MONITORINFO);
 
-    GAMEBITMAPINFO gGameBitMap = { 0 };
-     
-    gGameBitMap.bitmapinfo.bmiHeader.biSize = sizeof(gGameBitMap.bitmapinfo.bmiHeader);
-    gGameBitMap.bitmapinfo.bmiHeader.biPlanes = 1;
-    
-   
-    gGameBitMap.bitmapinfo.bmiHeader.biWidth = GAME_RES_WIDTH;
-    gGameBitMap.bitmapinfo.bmiHeader.biHeight = GAME_RES_HEIGHT;
-
-    gGameBitMap.bitmapinfo.bmiHeader.biBitCount = GAME_BPP;
-
- 
-    gGameBitMap.Memory = VirtualAlloc(NULL, GAME_DRAWING_AREA_MEMORY_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-
-    if (gGameBitMap.Memory == NULL) {
-        Result = GetLastError();
-        MessageBox(gGameWindow, "Memory not allocated!", "Error!", MB_ICONEXCLAMATION | MB_OK);
-        goto Exit;
+    if (GetMonitorInfoA(MonitorFromWindow(gGameWindow, MONITOR_DEFAULTTOPRIMARY), &gMonitorInfo) == 0) {
+        MessageBoxA(NULL, "Get Monitor Info Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
     }
 
-Exit:
-    return(Result);
+   LONG MonitorWidth = gMonitorInfo.rcMonitor.right - gMonitorInfo.rcMonitor.left;
+   LONG MonitorHeight = gMonitorInfo.rcMonitor.bottom - gMonitorInfo.rcMonitor.top;
+
+
+    HDC DeviceContext = GetDC(gGameWindow);
+    int DIBits = StretchDIBits(DeviceContext, 0, 0, 100, 100, 0, 0, 100, 100, gGameBitMap.Memory, &gGameBitMap.bitmapinfo, DIB_RGB_COLORS, SRCCOPY);
+
+    if (DIBits == 0) {
+        MessageBoxA(NULL, "Stretch Bits Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
+    }
+
+    //When to release ? Just now ..
+    ReleaseDC(gGameWindow, DeviceContext);
+
 
 }
