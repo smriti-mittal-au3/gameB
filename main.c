@@ -1,9 +1,10 @@
-#pragma warning(push, 3)
+//#pragma warning(push, 3)
 //#pragma warning(disable : 4668)
+
 #include <windows.h> 
 #include <stdint.h>
 
-#pragma warning(pop)
+//#pragma warning(pop)
 
 #include "main.h"
 
@@ -16,6 +17,10 @@ MONITORINFO gMonitorInfo;
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
 {
+    UNREFERENCED_PARAMETER(nShowCmd);
+    UNREFERENCED_PARAMETER(lpCmdLine);
+    UNREFERENCED_PARAMETER(hPrevInstance);
+    UNREFERENCED_PARAMETER(hInstance);
 
     MSG Msg = { 0 };
 
@@ -84,7 +89,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     for (int x = 0; x < GAME_RES_WIDTH * GAME_RES_HEIGHT; x++)
     {
 
-        memcpy((PIXEL32*) gGameBitMap.Memory + x, &Pixel, 4);
+        memcpy_s((PIXEL32*) gGameBitMap.Memory + x, sizeof(PIXEL32),  &Pixel, 4);
     }
 
 
@@ -128,6 +133,7 @@ LRESULT __stdcall WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         break;
     default:
         Result = DefWindowProc(hwnd, msg, wParam, lParam);
+        goto Exit;
         break;
     }
 
@@ -207,7 +213,7 @@ BOOL GameIsAlreadyRunning(void)
 }
 
 
-VOID ProcessPlayerInput()
+VOID ProcessPlayerInput(void)
 {
  
     int16_t EscapeKeyIsDown = GetAsyncKeyState(VK_ESCAPE);
