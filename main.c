@@ -11,6 +11,7 @@
 BOOL gGameIsRunning = FALSE;
 HWND gGameWindow;
 GAMEBITMAPINFO gGameBitMap = { 0 };
+MONITORINFO gMonitorInfo;
 
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
@@ -29,8 +30,28 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     }
 
 
-    //void * Memory;
+ 
+    gMonitorInfo.cbSize = sizeof(MONITORINFO);
 
+    if (GetMonitorInfoA(MonitorFromWindow(gGameWindow, MONITOR_DEFAULTTOPRIMARY), &gMonitorInfo) == 0) {
+        MessageBoxA(NULL, "Get Monitor Info Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
+    }
+    
+    int32_t MonitorWidth = gMonitorInfo.rcMonitor.right - gMonitorInfo.rcMonitor.left;
+    int32_t MonitorHeight = gMonitorInfo.rcMonitor.bottom - gMonitorInfo.rcMonitor.top;
+
+    SetWindowLongPtrA(gGameWindow, GWL_STYLE, WS_DLGFRAME);
+
+    SetWindowPos(
+        gGameWindow, 
+        HWND_TOP, 
+        gMonitorInfo.rcMonitor.left, 
+        gMonitorInfo.rcMonitor.top, 
+        MonitorWidth, 
+        MonitorHeight, 
+        SWP_SHOWWINDOW
+    );
+   
 
     gGameBitMap.bitmapinfo.bmiHeader.biSize = sizeof(gGameBitMap.bitmapinfo.bmiHeader);
     gGameBitMap.bitmapinfo.bmiHeader.biPlanes = 1;
@@ -51,7 +72,21 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
         goto Exit;
     }
 
-    memset(gGameBitMap.Memory, 0x0000FF, GAME_DRAWING_AREA_MEMORY_SIZE);
+    memset(gGameBitMap.Memory, 0x00007F, GAME_DRAWING_AREA_MEMORY_SIZE);
+
+
+    PIXEL32 Pixel = { 0 };
+    Pixel.Blue = 0xFF;
+    Pixel.Green = 0x00;
+    Pixel.Red = 0x00;
+    Pixel.Alpha = 0x00;
+
+    for (int x = 0; x < GAME_RES_WIDTH * GAME_RES_HEIGHT; x++)
+    {
+
+        memcpy((PIXEL32*) gGameBitMap.Memory + x, &Pixel, 4);
+    }
+
 
     gGameIsRunning = TRUE;
 
@@ -175,7 +210,7 @@ BOOL GameIsAlreadyRunning(void)
 VOID ProcessPlayerInput()
 {
  
-    SHORT EscapeKeyIsDown = GetAsyncKeyState(VK_ESCAPE);
+    int16_t EscapeKeyIsDown = GetAsyncKeyState(VK_ESCAPE);
     
     if (EscapeKeyIsDown)
     {
@@ -185,19 +220,25 @@ VOID ProcessPlayerInput()
 
 void RenderGameGraphics(void)
 {
-    MONITORINFO gMonitorInfo;
-    gMonitorInfo.cbSize = sizeof(MONITORINFO);
-
-    if (GetMonitorInfoA(MonitorFromWindow(gGameWindow, MONITOR_DEFAULTTOPRIMARY), &gMonitorInfo) == 0) {
-        MessageBoxA(NULL, "Get Monitor Info Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
-    }
-
-   LONG MonitorWidth = gMonitorInfo.rcMonitor.right - gMonitorInfo.rcMonitor.left;
-   LONG MonitorHeight = gMonitorInfo.rcMonitor.bottom - gMonitorInfo.rcMonitor.top;
-
 
     HDC DeviceContext = GetDC(gGameWindow);
-    int DIBits = StretchDIBits(DeviceContext, 0, 0, 100, 100, 0, 0, 100, 100, gGameBitMap.Memory, &gGameBitMap.bitmapinfo, DIB_RGB_COLORS, SRCCOPY);
+   
+  
+    int DIBits = StretchDIBits(
+        DeviceContext, 
+        0, 
+        0, 
+        gMonitorInfo.rcMonitor.right - gMonitorInfo.rcMonitor.left, 
+        gMonitorInfo.rcMonitor.bottom - gMonitorInfo.rcMonitor.top,
+        //x-coordinate of buffer
+        0, 
+        0, 
+        GAME_RES_WIDTH, 
+        GAME_RES_HEIGHT, 
+        gGameBitMap.Memory, 
+        &gGameBitMap.bitmapinfo, 
+        DIB_RGB_COLORS, 
+        SRCCOPY);
 
     if (DIBits == 0) {
         MessageBoxA(NULL, "Stretch Bits Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);

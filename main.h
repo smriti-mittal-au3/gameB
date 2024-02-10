@@ -24,9 +24,9 @@ typedef struct {
 } GAMEBITMAPINFO;
 
 
-struct Pixel32 {
+typedef struct {
 	uint8_t Blue;
 	uint8_t Green;
 	uint8_t Red;
 	uint8_t Alpha;
-};
+} PIXEL32;
