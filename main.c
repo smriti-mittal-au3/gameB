@@ -40,7 +40,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     int32_t MonitorWidth = gMonitorInfo.rcMonitor.right - gMonitorInfo.rcMonitor.left;
     int32_t MonitorHeight = gMonitorInfo.rcMonitor.bottom - gMonitorInfo.rcMonitor.top;
 
-    SetWindowLongPtrA(gGameWindow, GWL_STYLE, WS_DLGFRAME);
+    SetWindowLongPtrA(gGameWindow, GWL_STYLE, (WS_OVERLAPPEDWINDOW | WS_VISIBLE) & ~WS_OVERLAPPEDWINDOW);
 
     SetWindowPos(
         gGameWindow, 
@@ -167,7 +167,7 @@ DWORD CreateMainWindow(void)
 
 
     gGameWindow = CreateWindowEx(
-        WS_EX_CLIENTEDGE,
+        0,
         wc.lpszClassName,
         "The title of my window",
         WS_OVERLAPPEDWINDOW | WS_OVERLAPPED | WS_HSCROLL,
