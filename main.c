@@ -3,6 +3,7 @@
 
 #include <windows.h> 
 #include <stdint.h>
+#include <stdio.h>
 
 //#pragma warning(pop)
 
@@ -12,7 +13,7 @@
 BOOL gGameIsRunning = FALSE;
 HWND gGameWindow;
 GAMEBITMAPINFO gGameBitMap = { 0 };
-MONITORINFO gMonitorInfo;
+GAMEPERFDATA gGamePerformanceData = { 0 };
 
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
@@ -23,6 +24,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     UNREFERENCED_PARAMETER(hInstance);
 
     MSG Msg = { 0 };
+
+    int64_t PerfFrequency;
+
 
     if (GameIsAlreadyRunning() == TRUE)
     {
@@ -36,22 +40,22 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 
  
-    gMonitorInfo.cbSize = sizeof(MONITORINFO);
+    gGamePerformanceData.MonitorInfo.cbSize = sizeof(MONITORINFO);
 
-    if (GetMonitorInfoA(MonitorFromWindow(gGameWindow, MONITOR_DEFAULTTOPRIMARY), &gMonitorInfo) == 0) {
+    if (GetMonitorInfoA(MonitorFromWindow(gGameWindow, MONITOR_DEFAULTTOPRIMARY), &gGamePerformanceData.MonitorInfo) == 0) {
         MessageBoxA(NULL, "Get Monitor Info Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
     }
     
-    int32_t MonitorWidth = gMonitorInfo.rcMonitor.right - gMonitorInfo.rcMonitor.left;
-    int32_t MonitorHeight = gMonitorInfo.rcMonitor.bottom - gMonitorInfo.rcMonitor.top;
+    int32_t MonitorWidth = gGamePerformanceData.MonitorInfo.rcMonitor.right - gGamePerformanceData.MonitorInfo.rcMonitor.left;
+    int32_t MonitorHeight = gGamePerformanceData.MonitorInfo.rcMonitor.bottom - gGamePerformanceData.MonitorInfo.rcMonitor.top;
 
     SetWindowLongPtrA(gGameWindow, GWL_STYLE, (WS_OVERLAPPEDWINDOW | WS_VISIBLE) & ~WS_OVERLAPPEDWINDOW);
 
     SetWindowPos(
         gGameWindow, 
         HWND_TOP, 
-        gMonitorInfo.rcMonitor.left, 
-        gMonitorInfo.rcMonitor.top, 
+        gGamePerformanceData.MonitorInfo.rcMonitor.left,
+        gGamePerformanceData.MonitorInfo.rcMonitor.top,
         MonitorWidth, 
         MonitorHeight, 
         SWP_SHOWWINDOW
@@ -95,8 +99,19 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
     gGameIsRunning = TRUE;
 
+    QueryPerformanceFrequency(&PerfFrequency);
+
     while (gGameIsRunning == TRUE)
     {
+        int64_t FrameStart = 0;
+        int64_t FrameEnd = 0;
+        int64_t ElapsedMicrosecondsPerFrame = 0;
+        int64_t ElapsedMicrosecondsPerFrameAccumulatorCooked;
+        int64_t ElapsedMicrosecondsPerFrameAccumulatorRaw;
+
+
+        QueryPerformanceCounter(&FrameStart);
+ 
         while (PeekMessageA(&Msg, gGameWindow, 0, 0, TRUE) > 0)
         {
             TranslateMessage(&Msg);
@@ -108,8 +123,60 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
         // Now we can do other stuff, but why
         ProcessPlayerInput();
 
-        Sleep(1);
+        QueryPerformanceCounter((LARGE_INTEGER*)&FrameEnd);
 
+        ElapsedMicrosecondsPerFrame = FrameEnd - FrameStart;
+
+        ElapsedMicrosecondsPerFrame *= 1000000;
+
+        ElapsedMicrosecondsPerFrame /= gGamePerformanceData.PerfFrequency;
+
+        gGamePerformanceData.TotalFramesRendered++;
+
+        ElapsedMicrosecondsPerFrameAccumulatorRaw += ElapsedMicrosecondsPerFrame;
+
+        while (ElapsedMicrosecondsPerFrame <= TARGET_MICROSECONDS_PER_FRAME)
+        {
+            Sleep(0);
+
+            ElapsedMicrosecondsPerFrame = FrameEnd - FrameStart;
+
+            ElapsedMicrosecondsPerFrame *= 1000000;
+
+            ElapsedMicrosecondsPerFrame /= gGamePerformanceData.PerfFrequency;
+
+            QueryPerformanceCounter((LARGE_INTEGER*)&FrameEnd);
+        }
+
+        ElapsedMicrosecondsPerFrameAccumulatorCooked += ElapsedMicrosecondsPerFrame;
+
+
+
+        if ((gGamePerformanceData.TotalFramesRendered % CALCULATE_AVG_FPS_EVERY_X_FRAMES) == 0)
+        {
+            float AverageMicrosecondsPerFrameRaw = ElapsedMicrosecondsPerFrameAccumulatorRaw / CALCULATE_AVG_FPS_EVERY_X_FRAMES;
+
+            int64_t AverageMicrosecondsPerFrameCooked = ElapsedMicrosecondsPerFrameAccumulatorCooked / CALCULATE_AVG_FPS_EVERY_X_FRAMES;
+
+            gGamePerformanceData.RawFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorRaw / 60) * 0.000001f);
+
+            gGamePerformanceData.CookedFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorCooked / 60) * 0.000001f);
+
+
+            char str[256] = { 0 };
+
+            _snprintf_s(str, _countof(str), _TRUNCATE,
+                "Avg milliseconds/frame raw: %.02f\tAvg FPS Cooked: %.01f\tAvg FPS Raw: %.01f\n",
+                AverageMicrosecondsPerFrameRaw,
+                gGamePerformanceData.CookedFPSAverage,
+                gGamePerformanceData.RawFPSAverage);
+
+            OutputDebugStringA(str);
+
+            ElapsedMicrosecondsPerFrameAccumulatorRaw = 0;
+
+            ElapsedMicrosecondsPerFrameAccumulatorCooked = 0;
+        }
     }
 
 
@@ -185,7 +252,7 @@ DWORD CreateMainWindow(void)
         Result = GetLastError();
         MessageBox(NULL, "Window Creation Failed!", "Error!",
             MB_ICONEXCLAMATION | MB_OK);
-
+         
         goto Exit;
     }
 
@@ -234,8 +301,8 @@ void RenderGameGraphics(void)
         DeviceContext, 
         0, 
         0, 
-        gMonitorInfo.rcMonitor.right - gMonitorInfo.rcMonitor.left, 
-        gMonitorInfo.rcMonitor.bottom - gMonitorInfo.rcMonitor.top,
+        gGamePerformanceData.MonitorInfo.rcMonitor.right - gGamePerformanceData.MonitorInfo.rcMonitor.left,
+        gGamePerformanceData.MonitorInfo.rcMonitor.bottom - gGamePerformanceData.MonitorInfo.rcMonitor.top,
         //x-coordinate of buffer
         0, 
         0, 

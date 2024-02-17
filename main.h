@@ -10,6 +10,11 @@
 
 #define GAME_DRAWING_AREA_MEMORY_SIZE	(GAME_RES_WIDTH * GAME_RES_HEIGHT * (GAME_BPP / 8))
 
+//why define, why not int8_t calc_av_ .. = 100;
+#define CALCULATE_AVG_FPS_EVERY_X_FRAMES	100
+
+#define TARGET_MICROSECONDS_PER_FRAME 16667
+
 
 //#define int GAME_NAME = "GAME_B_";
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -34,3 +39,15 @@ typedef struct {
 } PIXEL32;
 
 
+typedef struct {
+	uint64_t TotalFramesRendered;
+	uint64_t TotalMicrosecondsElapsed;
+	uint64_t PerfFrequency;
+
+	float RawFPSAverage;
+	float CookedFPSAverage;
+
+	MONITORINFO MonitorInfo;
+	int32_t MonitorWidth;
+	int32_t MonitorHeight;
+} GAMEPERFDATA;
