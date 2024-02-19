@@ -24,9 +24,11 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     UNREFERENCED_PARAMETER(hInstance);
 
     MSG Msg = { 0 };
-
-    int64_t PerfFrequency;
-
+    int64_t FrameStart = 0;
+    int64_t FrameEnd = 0;
+    int64_t ElapsedMicrosecondsPerFrame = 0;
+    int64_t ElapsedMicrosecondsPerFrameAccumulatorCooked = 0;
+    int64_t ElapsedMicrosecondsPerFrameAccumulatorRaw = 0;
 
     if (GameIsAlreadyRunning() == TRUE)
     {
@@ -49,7 +51,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     int32_t MonitorWidth = gGamePerformanceData.MonitorInfo.rcMonitor.right - gGamePerformanceData.MonitorInfo.rcMonitor.left;
     int32_t MonitorHeight = gGamePerformanceData.MonitorInfo.rcMonitor.bottom - gGamePerformanceData.MonitorInfo.rcMonitor.top;
 
-    SetWindowLongPtrA(gGameWindow, GWL_STYLE, (WS_OVERLAPPEDWINDOW | WS_VISIBLE) & ~WS_OVERLAPPEDWINDOW);
+    //SetWindowLongPtrA(gGameWindow, GWL_STYLE, (WS_OVERLAPPEDWINDOW | WS_VISIBLE) & ~WS_OVERLAPPEDWINDOW);
+    int32_t a = (WS_OVERLAPPEDWINDOW | WS_VISIBLE) & ~WS_OVERLAPPEDWINDOW;
+    int32_t b = WS_VISIBLE;
+    SetWindowLongPtrA(gGameWindow, GWL_STYLE,  WS_VISIBLE);
 
     SetWindowPos(
         gGameWindow, 
@@ -99,15 +104,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
     gGameIsRunning = TRUE;
 
-    QueryPerformanceFrequency(&PerfFrequency);
+    QueryPerformanceFrequency(&gGamePerformanceData.PerfFrequency);
 
     while (gGameIsRunning == TRUE)
     {
-        int64_t FrameStart = 0;
-        int64_t FrameEnd = 0;
-        int64_t ElapsedMicrosecondsPerFrame = 0;
-        int64_t ElapsedMicrosecondsPerFrameAccumulatorCooked;
-        int64_t ElapsedMicrosecondsPerFrameAccumulatorRaw;
 
 
         QueryPerformanceCounter(&FrameStart);
