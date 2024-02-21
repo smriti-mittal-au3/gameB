@@ -51,9 +51,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     int32_t MonitorWidth = gGamePerformanceData.MonitorInfo.rcMonitor.right - gGamePerformanceData.MonitorInfo.rcMonitor.left;
     int32_t MonitorHeight = gGamePerformanceData.MonitorInfo.rcMonitor.bottom - gGamePerformanceData.MonitorInfo.rcMonitor.top;
 
-    //SetWindowLongPtrA(gGameWindow, GWL_STYLE, (WS_OVERLAPPEDWINDOW | WS_VISIBLE) & ~WS_OVERLAPPEDWINDOW);
-    int32_t a = (WS_OVERLAPPEDWINDOW | WS_VISIBLE) & ~WS_OVERLAPPEDWINDOW;
-    int32_t b = WS_VISIBLE;
+
     SetWindowLongPtrA(gGameWindow, GWL_STYLE,  WS_VISIBLE);
 
     SetWindowPos(
@@ -137,7 +135,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
         while (ElapsedMicrosecondsPerFrame <= TARGET_MICROSECONDS_PER_FRAME)
         {
-            Sleep(0);
+            Sleep(1);
 
             ElapsedMicrosecondsPerFrame = FrameEnd - FrameStart;
 
@@ -154,27 +152,11 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
         if ((gGamePerformanceData.TotalFramesRendered % CALCULATE_AVG_FPS_EVERY_X_FRAMES) == 0)
         {
-            float AverageMicrosecondsPerFrameRaw = ElapsedMicrosecondsPerFrameAccumulatorRaw / CALCULATE_AVG_FPS_EVERY_X_FRAMES;
+            gGamePerformanceData.RawFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorRaw / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
+            gGamePerformanceData.CookedFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorCooked / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
 
-            int64_t AverageMicrosecondsPerFrameCooked = ElapsedMicrosecondsPerFrameAccumulatorCooked / CALCULATE_AVG_FPS_EVERY_X_FRAMES;
-
-            gGamePerformanceData.RawFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorRaw / 60) * 0.000001f);
-
-            gGamePerformanceData.CookedFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorCooked / 60) * 0.000001f);
-
-
-            char str[256] = { 0 };
-
-            _snprintf_s(str, _countof(str), _TRUNCATE,
-                "Avg milliseconds/frame raw: %.02f\tAvg FPS Cooked: %.01f\tAvg FPS Raw: %.01f\n",
-                AverageMicrosecondsPerFrameRaw,
-                gGamePerformanceData.CookedFPSAverage,
-                gGamePerformanceData.RawFPSAverage);
-
-            OutputDebugStringA(str);
 
             ElapsedMicrosecondsPerFrameAccumulatorRaw = 0;
-
             ElapsedMicrosecondsPerFrameAccumulatorCooked = 0;
         }
     }
@@ -284,11 +266,21 @@ VOID ProcessPlayerInput(void)
 {
  
     int16_t EscapeKeyIsDown = GetAsyncKeyState(VK_ESCAPE);
-    
+    int16_t DebugKeyIsDown = GetAsyncKeyState(VK_F11);
+    static BOOL DebugKeyWasDown = 0;
+
     if (EscapeKeyIsDown)
     {
         SendMessage(gGameWindow, WM_CLOSE, 0, 0);
     }
+
+    if (DebugKeyIsDown && DebugKeyWasDown == FALSE) 
+    {
+        //don't toggle if still down'
+        gGamePerformanceData.ShowDebugInfo = !gGamePerformanceData.ShowDebugInfo; 
+    }
+    DebugKeyWasDown = DebugKeyIsDown;
+
 }
 
 void RenderGameGraphics(void)
@@ -315,6 +307,19 @@ void RenderGameGraphics(void)
 
     if (DIBits == 0) {
         MessageBoxA(NULL, "Stretch Bits Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
+    }
+
+    if (gGamePerformanceData.ShowDebugInfo == TRUE)
+    {
+
+        (HFONT)SelectObject(DeviceContext, (HFONT)GetStockObject(ANSI_FIXED_FONT));
+
+        char Buffer[64] = { 0 };
+
+        sprintf_s(Buffer, _countof(Buffer), "Avg FPS Cooked: %.01f\n",
+            gGamePerformanceData.CookedFPSAverage);
+
+        TextOutA(DeviceContext, 0, 0, Buffer, (int)strlen(Buffer));
     }
 
     //When to release ? Just now ..

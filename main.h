@@ -50,4 +50,6 @@ typedef struct {
 	MONITORINFO MonitorInfo;
 	int32_t MonitorWidth;
 	int32_t MonitorHeight;
+
+	BOOL ShowDebugInfo;
 } GAMEPERFDATA;
