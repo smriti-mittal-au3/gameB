@@ -23,8 +23,11 @@ VOID ProcessPlayerInput(void);
 void RenderGameGraphics(void);
 BOOL GameIsAlreadyRunning(void);
 
+typedef LONG(NTAPI* _NtQueryTimerResolution)(OUT PULONG MinimumResolution, OUT PULONG MaximumResolution, OUT PULONG CurrentResolution);
+_NtQueryTimerResolution NtQueryTimerResolution;
+
 //what is DWORD man
-typedef struct {
+typedef struct { 
 	BITMAPINFO bitmapinfo;
 	//4 bytes padding
 	void* Memory;
@@ -50,6 +53,10 @@ typedef struct {
 	MONITORINFO MonitorInfo;
 	int32_t MonitorWidth;
 	int32_t MonitorHeight;
+
+	LONG MinimumResolution;
+	LONG MaximumResolution;
+	LONG CurrentResolution;
 
 	BOOL ShowDebugInfo;
 } GAMEPERFDATA;

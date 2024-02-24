@@ -30,6 +30,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     int64_t ElapsedMicrosecondsPerFrameAccumulatorCooked = 0;
     int64_t ElapsedMicrosecondsPerFrameAccumulatorRaw = 0;
 
+    TIMECAPS t = { 0 };
+    //timeGetDevCaps();
+
     if (GameIsAlreadyRunning() == TRUE)
     {
         goto Exit;
@@ -104,6 +107,45 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
     QueryPerformanceFrequency(&gGamePerformanceData.PerfFrequency);
 
+    HINSTANCE NTDllModuleHandle;
+    //typedef INT_PTR
+    //FARPROC ProcAdd;
+
+    //The module must have been loaded by the calling process
+    NTDllModuleHandle = GetModuleHandle("ntdll.dll");
+
+    if (NTDllModuleHandle == NULL)
+    {
+        MessageBoxA(NULL, "Couldn't load ntdll.dll", "Error!", MB_ICONEXCLAMATION | MB_OK);
+
+        goto Exit;
+    }
+
+    // If the handle is valid, try to get the function address.
+
+  
+        //If the function might not exist in the DLL module—for example, if the function is 
+        //available only on Windows Vista but the application might be running on Windows XP
+    NtQueryTimerResolution = (_NtQueryTimerResolution)GetProcAddress(NTDllModuleHandle, "NtQueryTimerResolution");
+        //btw, why shouldn't we use timeBeginPeriod(1) 
+        // If the function address is valid, call the function.
+
+    if (NULL != NtQueryTimerResolution)
+    {
+
+        //OUT => output :D
+        //in nanosec, convert to microsec ?
+        //what is PULONG ?
+        //get this value once, is ok ? not with every frame ?
+        /*NtQueryTimerResolution(
+            OUT PULONG  MinimumResolution,
+            OUT PULONG  MaximumResolution,
+            OUT PULONG  CurrentResolution);*/
+
+        NtQueryTimerResolution(&gGamePerformanceData.MaximumResolution, &gGamePerformanceData.MinimumResolution, &gGamePerformanceData.CurrentResolution);
+    }
+  
+
     while (gGameIsRunning == TRUE)
     {
 
@@ -133,10 +175,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
         ElapsedMicrosecondsPerFrameAccumulatorRaw += ElapsedMicrosecondsPerFrame;
 
+
         while (ElapsedMicrosecondsPerFrame <= TARGET_MICROSECONDS_PER_FRAME)
         {
-            Sleep(1);
-
             ElapsedMicrosecondsPerFrame = FrameEnd - FrameStart;
 
             ElapsedMicrosecondsPerFrame *= 1000000;
@@ -144,6 +185,19 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
             ElapsedMicrosecondsPerFrame /= gGamePerformanceData.PerfFrequency;
 
             QueryPerformanceCounter((LARGE_INTEGER*)&FrameEnd);
+
+            //diff b/w #define x 123 vs int32 x = 123
+            //16667
+            //15ms => 15000 microsec
+            //100 ns => 150000
+            if (ElapsedMicrosecondsPerFrame <= TARGET_MICROSECONDS_PER_FRAME * 10.0f - gGamePerformanceData.CurrentResolution)
+            {
+                //Sleep 1 => sleep for gGamePerformanceData.CurrentResolution oh is it
+                //if elapsed ms + this < target then go in the loop
+                //if not, then ?  ok, then just keep while looping and let time pass
+                //but what is that player doing meanwhile ?
+                Sleep(1);
+            }
         }
 
         ElapsedMicrosecondsPerFrameAccumulatorCooked += ElapsedMicrosecondsPerFrame;
@@ -316,10 +370,25 @@ void RenderGameGraphics(void)
 
         char Buffer[64] = { 0 };
 
-        sprintf_s(Buffer, _countof(Buffer), "Avg FPS Cooked: %.01f\n",
-            gGamePerformanceData.CookedFPSAverage);
+        sprintf_s(Buffer, _countof(Buffer), "Min Res: %.02f\n",
+            gGamePerformanceData.MinimumResolution / 10000.0f);
 
         TextOutA(DeviceContext, 0, 0, Buffer, (int)strlen(Buffer));
+
+        sprintf_s(Buffer, _countof(Buffer), "Max Res: %.02f\n",
+            gGamePerformanceData.MaximumResolution / 10000.0f);
+
+        TextOutA(DeviceContext, 0, 14, Buffer, (int)strlen(Buffer));
+
+        sprintf_s(Buffer, _countof(Buffer), "Current Res: %.02f\n",
+            gGamePerformanceData.CurrentResolution / 10000.0f);
+
+        TextOutA(DeviceContext, 0, 28, Buffer, (int)strlen(Buffer));
+
+        sprintf_s(Buffer, _countof(Buffer), "FPS: %.02f\n",
+            gGamePerformanceData.CookedFPSAverage / 10000.0f);
+
+        TextOutA(DeviceContext, 0, 42, Buffer, (int)strlen(Buffer));
     }
 
     //When to release ? Just now ..
