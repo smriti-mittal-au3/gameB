@@ -386,12 +386,12 @@ void RenderGameGraphics(void)
         TextOutA(DeviceContext, 0, 28, Buffer, (int)strlen(Buffer));
 
         sprintf_s(Buffer, _countof(Buffer), "Cooked FPS: %.02f\n",
-            gGamePerformanceData.CookedFPSAverage / 10000.0f);
+            gGamePerformanceData.CookedFPSAverage);
 
         TextOutA(DeviceContext, 0, 42, Buffer, (int)strlen(Buffer));
 
         sprintf_s(Buffer, _countof(Buffer), "Raw FPS: %.02f\n",
-            gGamePerformanceData.RawFPSAverage / 10000.0f);
+            gGamePerformanceData.RawFPSAverage);
 
         TextOutA(DeviceContext, 0, 56, Buffer, (int)strlen(Buffer));
     }
