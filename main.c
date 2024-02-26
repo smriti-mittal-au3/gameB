@@ -190,7 +190,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
             //16667
             //15ms => 15000 microsec
             //100 ns => 150000
-            if (ElapsedMicrosecondsPerFrame <= TARGET_MICROSECONDS_PER_FRAME * 10.0f - gGamePerformanceData.CurrentResolution)
+            if (ElapsedMicrosecondsPerFrame <= TARGET_MICROSECONDS_PER_FRAME  - gGamePerformanceData.CurrentResolution / 10.0f)
             {
                 //Sleep 1 => sleep for gGamePerformanceData.CurrentResolution oh is it
                 //if elapsed ms + this < target then go in the loop
@@ -385,10 +385,15 @@ void RenderGameGraphics(void)
 
         TextOutA(DeviceContext, 0, 28, Buffer, (int)strlen(Buffer));
 
-        sprintf_s(Buffer, _countof(Buffer), "FPS: %.02f\n",
+        sprintf_s(Buffer, _countof(Buffer), "Cooked FPS: %.02f\n",
             gGamePerformanceData.CookedFPSAverage / 10000.0f);
 
         TextOutA(DeviceContext, 0, 42, Buffer, (int)strlen(Buffer));
+
+        sprintf_s(Buffer, _countof(Buffer), "Raw FPS: %.02f\n",
+            gGamePerformanceData.RawFPSAverage / 10000.0f);
+
+        TextOutA(DeviceContext, 0, 56, Buffer, (int)strlen(Buffer));
     }
 
     //When to release ? Just now ..
