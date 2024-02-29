@@ -22,6 +22,8 @@ DWORD CreateMainWindow(void);
 VOID ProcessPlayerInput(void);
 void RenderGameGraphics(void);
 BOOL GameIsAlreadyRunning(void);
+void ClearScreen(__m128i * Pixel128);
+
 
 typedef LONG(NTAPI* _NtQueryTimerResolution)(OUT PULONG MinimumResolution, OUT PULONG MaximumResolution, OUT PULONG CurrentResolution);
 _NtQueryTimerResolution NtQueryTimerResolution;

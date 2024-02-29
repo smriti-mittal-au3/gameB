@@ -4,6 +4,7 @@
 #include <windows.h> 
 #include <stdint.h>
 #include <stdio.h>
+#include <emmintrin.h>
 
 //#pragma warning(pop)
 
@@ -96,12 +97,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     Pixel.Red = 0x00;
     Pixel.Alpha = 0x00;
 
-    for (int x = 0; x < GAME_RES_WIDTH * GAME_RES_HEIGHT; x++)
-    {
-
-        memcpy_s((PIXEL32*) gGameBitMap.Memory + x, sizeof(PIXEL32),  &Pixel, 4);
-    }
-
+    __m128i Pixel128 = { 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00 };
+    ClearScreen(&Pixel128);
 
     gGameIsRunning = TRUE;
 
@@ -121,26 +118,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
         goto Exit;
     }
 
-    // If the handle is valid, try to get the function address.
-
-  
-        //If the function might not exist in the DLL module—for example, if the function is 
-        //available only on Windows Vista but the application might be running on Windows XP
     NtQueryTimerResolution = (_NtQueryTimerResolution)GetProcAddress(NTDllModuleHandle, "NtQueryTimerResolution");
-        //btw, why shouldn't we use timeBeginPeriod(1) 
-        // If the function address is valid, call the function.
 
     if (NULL != NtQueryTimerResolution)
     {
-
-        //OUT => output :D
-        //in nanosec, convert to microsec ?
-        //what is PULONG ?
-        //get this value once, is ok ? not with every frame ?
-        /*NtQueryTimerResolution(
-            OUT PULONG  MinimumResolution,
-            OUT PULONG  MaximumResolution,
-            OUT PULONG  CurrentResolution);*/
 
         NtQueryTimerResolution(&gGamePerformanceData.MaximumResolution, &gGamePerformanceData.MinimumResolution, &gGamePerformanceData.CurrentResolution);
     }
@@ -148,8 +129,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
     while (gGameIsRunning == TRUE)
     {
-
-
         QueryPerformanceCounter(&FrameStart);
  
         while (PeekMessageA(&Msg, gGameWindow, 0, 0, TRUE) > 0)
@@ -157,7 +136,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
             TranslateMessage(&Msg);
             DispatchMessageA(&Msg);
         }
-
 
         RenderGameGraphics();
         // Now we can do other stuff, but why
@@ -175,7 +153,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
         ElapsedMicrosecondsPerFrameAccumulatorRaw += ElapsedMicrosecondsPerFrame;
 
-
         while (ElapsedMicrosecondsPerFrame <= TARGET_MICROSECONDS_PER_FRAME)
         {
             ElapsedMicrosecondsPerFrame = FrameEnd - FrameStart;
@@ -186,29 +163,18 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
             QueryPerformanceCounter((LARGE_INTEGER*)&FrameEnd);
 
-            //diff b/w #define x 123 vs int32 x = 123
-            //16667
-            //15ms => 15000 microsec
-            //100 ns => 150000
             if (ElapsedMicrosecondsPerFrame <= TARGET_MICROSECONDS_PER_FRAME  - gGamePerformanceData.CurrentResolution / 10.0f)
             {
-                //Sleep 1 => sleep for gGamePerformanceData.CurrentResolution oh is it
-                //if elapsed ms + this < target then go in the loop
-                //if not, then ?  ok, then just keep while looping and let time pass
-                //but what is that player doing meanwhile ?
                 Sleep(1);
             }
         }
 
         ElapsedMicrosecondsPerFrameAccumulatorCooked += ElapsedMicrosecondsPerFrame;
 
-
-
         if ((gGamePerformanceData.TotalFramesRendered % CALCULATE_AVG_FPS_EVERY_X_FRAMES) == 0)
         {
             gGamePerformanceData.RawFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorRaw / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
             gGamePerformanceData.CookedFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorCooked / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
-
 
             ElapsedMicrosecondsPerFrameAccumulatorRaw = 0;
             ElapsedMicrosecondsPerFrameAccumulatorCooked = 0;
@@ -400,4 +366,13 @@ void RenderGameGraphics(void)
     ReleaseDC(gGameWindow, DeviceContext);
 
 
+}
+
+void ClearScreen(__m128i * Pixel128)
+{
+    for (int x = 0; x < GAME_RES_WIDTH * GAME_RES_HEIGHT / 4; x++)
+    {
+        _mm_storeu_si128((__m128i*)gGameBitMap.Memory + x, *Pixel128);
+        //memcpy_s((PIXEL32*) gGameBitMap.Memory + x, sizeof(PIXEL32),  &Pixel, 4);
+    }
 }
