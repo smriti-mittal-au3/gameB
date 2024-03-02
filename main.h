@@ -4,6 +4,7 @@
 
 #define GAME_RES_WIDTH	384
 
+//why define works here
 #define GAME_RES_HEIGHT	216
 
 #define GAME_BPP		32
@@ -62,3 +63,9 @@ typedef struct {
 
 	BOOL ShowDebugInfo;
 } GAMEPERFDATA;
+
+
+typedef struct PLAYER {
+	int32_t WorldPosX;
+	int32_t WorldPosY;
+} PLAYER;

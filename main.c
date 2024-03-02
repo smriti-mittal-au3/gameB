@@ -15,6 +15,7 @@ BOOL gGameIsRunning = FALSE;
 HWND gGameWindow;
 GAMEBITMAPINFO gGameBitMap = { 0 };
 GAMEPERFDATA gGamePerformanceData = { 0 };
+PLAYER gPlayer;
 
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
@@ -98,17 +99,18 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     Pixel.Alpha = 0x00;
 
     __m128i Pixel128 = { 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00 };
-    ClearScreen(&Pixel128);
+
+    gPlayer.WorldPosX = 15;
+    gPlayer.WorldPosY = 15;
+
+    
 
     gGameIsRunning = TRUE;
 
     QueryPerformanceFrequency(&gGamePerformanceData.PerfFrequency);
 
     HINSTANCE NTDllModuleHandle;
-    //typedef INT_PTR
-    //FARPROC ProcAdd;
 
-    //The module must have been loaded by the calling process
     NTDllModuleHandle = GetModuleHandle("ntdll.dll");
 
     if (NTDllModuleHandle == NULL)
@@ -136,6 +138,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
             TranslateMessage(&Msg);
             DispatchMessageA(&Msg);
         }
+
+
+        ClearScreen(&Pixel128);
 
         RenderGameGraphics();
         // Now we can do other stuff, but why
@@ -287,6 +292,11 @@ VOID ProcessPlayerInput(void)
  
     int16_t EscapeKeyIsDown = GetAsyncKeyState(VK_ESCAPE);
     int16_t DebugKeyIsDown = GetAsyncKeyState(VK_F11);
+    int16_t RightKeyIsDown = GetAsyncKeyState(VK_RIGHT) | GetAsyncKeyState('D');
+    int16_t LeftKeyIsDown = GetAsyncKeyState(VK_LEFT) | GetAsyncKeyState('A');
+    int16_t UpKeyIsDown = GetAsyncKeyState(VK_UP) | GetAsyncKeyState('W');
+    int16_t DownKeyIsDown = GetAsyncKeyState(VK_DOWN) | GetAsyncKeyState('X');
+
     static BOOL DebugKeyWasDown = 0;
 
     if (EscapeKeyIsDown)
@@ -301,11 +311,46 @@ VOID ProcessPlayerInput(void)
     }
     DebugKeyWasDown = DebugKeyIsDown;
 
+    // x will circle back. but y wil crash hmmm why so
+    if (RightKeyIsDown)
+    {
+        gPlayer.WorldPosX++;
+    }
+
+    if (LeftKeyIsDown)
+    {
+        gPlayer.WorldPosX--;
+    }
+
+    if (UpKeyIsDown)
+    {
+        gPlayer.WorldPosY--;
+    }
+
+    if (DownKeyIsDown)
+    {
+        gPlayer.WorldPosY++;
+    }
+
+
 }
 
 void RenderGameGraphics(void)
 {
 
+
+    PIXEL32 Pixel32 = { 0xff, 0xff, 0xff, 0xff };
+    int32_t StartingPixel = GAME_RES_WIDTH * GAME_RES_HEIGHT - GAME_RES_WIDTH * gPlayer.WorldPosY - (GAME_RES_WIDTH - gPlayer.WorldPosX);
+
+    for (int16_t x = 0; x < 16; x++)
+    {
+        for (int16_t y = gPlayer.WorldPosY; y < gPlayer.WorldPosY + 16; y++)
+        {
+
+            memcpy_s((PIXEL32*)gGameBitMap.Memory + StartingPixel + x - (uintptr_t)GAME_RES_WIDTH * y, sizeof(PIXEL32), &Pixel32, sizeof(PIXEL32));
+
+        }
+    }
     HDC DeviceContext = GetDC(gGameWindow);
    
   
@@ -328,6 +373,8 @@ void RenderGameGraphics(void)
     if (DIBits == 0) {
         MessageBoxA(NULL, "Stretch Bits Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
     }
+
+
 
     if (gGamePerformanceData.ShowDebugInfo == TRUE)
     {
@@ -360,6 +407,12 @@ void RenderGameGraphics(void)
             gGamePerformanceData.RawFPSAverage);
 
         TextOutA(DeviceContext, 0, 56, Buffer, (int)strlen(Buffer));
+        
+        // not a float but sprintf_s takes in flat, hence, just typecasting
+        sprintf_s(Buffer, _countof(Buffer), "X World Pos: %.02f\n",
+                (float)gPlayer.WorldPosX);
+
+        TextOutA(DeviceContext, 0, 70, Buffer, (int)strlen(Buffer));
     }
 
     //When to release ? Just now ..
