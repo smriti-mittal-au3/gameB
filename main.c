@@ -158,7 +158,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
         ElapsedMicrosecondsPerFrameAccumulatorRaw += ElapsedMicrosecondsPerFrame;
 
-        while (ElapsedMicrosecondsPerFrame <= TARGET_MICROSECONDS_PER_FRAME)
+        while (ElapsedMicrosecondsPerFrame < TARGET_MICROSECONDS_PER_FRAME)
         {
             ElapsedMicrosecondsPerFrame = FrameEnd - FrameStart;
 
@@ -168,7 +168,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
             QueryPerformanceCounter((LARGE_INTEGER*)&FrameEnd);
 
-            if (ElapsedMicrosecondsPerFrame <= TARGET_MICROSECONDS_PER_FRAME  - gGamePerformanceData.CurrentResolution / 10.0f)
+            if (ElapsedMicrosecondsPerFrame < TARGET_MICROSECONDS_PER_FRAME  - gGamePerformanceData.CurrentResolution / 10.0f)
             {
                 Sleep(1);
             }
@@ -329,7 +329,7 @@ VOID ProcessPlayerInput(void)
 
     if (DownKeyIsDown)
     {
-        gPlayer.WorldPosY++;
+        gPlayer.WorldPosY++  ;
     }
 
 
