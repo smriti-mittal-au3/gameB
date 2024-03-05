@@ -11,8 +11,7 @@
 
 #define GAME_DRAWING_AREA_MEMORY_SIZE	(GAME_RES_WIDTH * GAME_RES_HEIGHT * (GAME_BPP / 8))
 
-//why define, why not int8_t calc_av_ .. = 100;
-#define CALCULATE_AVG_FPS_EVERY_X_FRAMES	100
+#define CALCULATE_AVG_FPS_EVERY_X_FRAMES	120
 
 #define TARGET_MICROSECONDS_PER_FRAME 16667
 
@@ -60,6 +59,8 @@ typedef struct {
 	LONG MinimumResolution;
 	LONG MaximumResolution;
 	LONG CurrentResolution;
+
+	DWORD ProcessHandleCount;
 
 	BOOL ShowDebugInfo;
 } GAMEPERFDATA;

@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <emmintrin.h>
+#include <Psapi.h>
 
 //#pragma warning(pop)
 
@@ -16,6 +17,7 @@ HWND gGameWindow;
 GAMEBITMAPINFO gGameBitMap = { 0 };
 GAMEPERFDATA gGamePerformanceData = { 0 };
 PLAYER gPlayer;
+
 
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
@@ -48,6 +50,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
  
     gGamePerformanceData.MonitorInfo.cbSize = sizeof(MONITORINFO);
+    gGamePerformanceData.ShowDebugInfo = TRUE;
 
     if (GetMonitorInfoA(MonitorFromWindow(gGameWindow, MONITOR_DEFAULTTOPRIMARY), &gGamePerformanceData.MonitorInfo) == 0) {
         MessageBoxA(NULL, "Get Monitor Info Failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
@@ -112,6 +115,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     HINSTANCE NTDllModuleHandle;
 
     NTDllModuleHandle = GetModuleHandle("ntdll.dll");
+
+    BOOL ProcessHandleCount = GetProcessHandleCount(GetCurrentProcess(), &gGamePerformanceData.ProcessHandleCount);
+    //in bytes ?
+    GetProcessMemoryInfo(GetCurrentProcess(), &gGamePerformanceData.MemInfo, sizeof(PROCESS_MEMORY_COUNTERS));
 
     if (NTDllModuleHandle == NULL)
     {
@@ -413,6 +420,11 @@ void RenderGameGraphics(void)
                 (float)gPlayer.WorldPosX);
 
         TextOutA(DeviceContext, 0, 70, Buffer, (int)strlen(Buffer));
+
+        sprintf_s(Buffer, _countof(Buffer), "Handle Count: %lu\n",
+            gGamePerformanceData.ProcessHandleCount);
+
+        TextOutA(DeviceContext, 0, 84, Buffer, (int)strlen(Buffer));
     }
 
     //When to release ? Just now ..
