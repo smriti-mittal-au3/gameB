@@ -118,7 +118,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
     BOOL ProcessHandleCount = GetProcessHandleCount(GetCurrentProcess(), &gGamePerformanceData.ProcessHandleCount);
     //in bytes ?
-    GetProcessMemoryInfo(GetCurrentProcess(), &gGamePerformanceData.MemInfo, sizeof(PROCESS_MEMORY_COUNTERS));
 
     if (NTDllModuleHandle == NULL)
     {
@@ -185,6 +184,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
         if ((gGamePerformanceData.TotalFramesRendered % CALCULATE_AVG_FPS_EVERY_X_FRAMES) == 0)
         {
+            K32GetProcessMemoryInfo(GetCurrentProcess(), &gGamePerformanceData.MemInfo, sizeof(PROCESS_MEMORY_COUNTERS));
+
             gGamePerformanceData.RawFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorRaw / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
             gGamePerformanceData.CookedFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorCooked / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
 
@@ -425,6 +426,12 @@ void RenderGameGraphics(void)
             gGamePerformanceData.ProcessHandleCount);
 
         TextOutA(DeviceContext, 0, 84, Buffer, (int)strlen(Buffer));
+
+        sprintf_s(Buffer, _countof(Buffer), "MemInfo: %lu \n", gGamePerformanceData.MemInfo.PagefileUsage / 1024);
+
+        TextOutA(DeviceContext, 0, 98, Buffer, (int)strlen(Buffer));
+
+
     }
 
     //When to release ? Just now ..

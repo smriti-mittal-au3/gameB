@@ -61,6 +61,7 @@ typedef struct {
 	LONG CurrentResolution;
 
 	DWORD ProcessHandleCount;
+	PROCESS_MEMORY_COUNTERS_EX MemInfo;
 
 	BOOL ShowDebugInfo;
 } GAMEPERFDATA;
