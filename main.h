@@ -63,6 +63,20 @@ typedef struct {
 	DWORD ProcessHandleCount;
 	PROCESS_MEMORY_COUNTERS_EX MemInfo;
 
+	FILETIME CreationTime;
+	FILETIME ExitTime;
+	int64_t UserTime;
+	int64_t KernelTime;
+	int64_t PreviousUserTime;
+	int64_t PreviousKernelTime;
+
+	int64_t CurrentSystemTime;
+	int64_t PreviousSystemTime;
+
+	double CPUPercentage;
+
+	SYSTEM_INFO SystemInfo;
+
 	BOOL ShowDebugInfo;
 } GAMEPERFDATA;
 

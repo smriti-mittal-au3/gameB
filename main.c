@@ -117,6 +117,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     NTDllModuleHandle = GetModuleHandle("ntdll.dll");
 
     BOOL ProcessHandleCount = GetProcessHandleCount(GetCurrentProcess(), &gGamePerformanceData.ProcessHandleCount);
+    GetSystemInfo(&gGamePerformanceData.SystemInfo);
+
     //in bytes ?
 
     if (NTDllModuleHandle == NULL)
@@ -166,6 +168,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
         while (ElapsedMicrosecondsPerFrame < TARGET_MICROSECONDS_PER_FRAME)
         {
+            
             ElapsedMicrosecondsPerFrame = FrameEnd - FrameStart;
 
             ElapsedMicrosecondsPerFrame *= 1000000;
@@ -176,7 +179,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
             if (ElapsedMicrosecondsPerFrame < TARGET_MICROSECONDS_PER_FRAME  - gGamePerformanceData.CurrentResolution / 10.0f)
             {
-                Sleep(1);
+                //Sleep(1);
             }
         }
 
@@ -186,11 +189,26 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
         {
             K32GetProcessMemoryInfo(GetCurrentProcess(), &gGamePerformanceData.MemInfo, sizeof(PROCESS_MEMORY_COUNTERS));
 
+            GetProcessTimes(GetCurrentProcess(), &gGamePerformanceData.CreationTime, &gGamePerformanceData.ExitTime, &gGamePerformanceData.KernelTime, &gGamePerformanceData.UserTime);
+            GetSystemTimeAsFileTime((FILETIME*)&gGamePerformanceData.CurrentSystemTime);
+            gGamePerformanceData.CPUPercentage = (double)(gGamePerformanceData.UserTime + gGamePerformanceData.KernelTime \
+                - gGamePerformanceData.PreviousKernelTime - \
+                gGamePerformanceData.PreviousUserTime);
+            gGamePerformanceData.CPUPercentage /= (gGamePerformanceData.CurrentSystemTime - \
+                gGamePerformanceData.PreviousSystemTime);
+            gGamePerformanceData.CPUPercentage /= gGamePerformanceData.SystemInfo.dwNumberOfProcessors;
+
+            gGamePerformanceData.CPUPercentage *= 100;
             gGamePerformanceData.RawFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorRaw / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
             gGamePerformanceData.CookedFPSAverage = 1.0f / ((ElapsedMicrosecondsPerFrameAccumulatorCooked / CALCULATE_AVG_FPS_EVERY_X_FRAMES) * 0.000001f);
 
             ElapsedMicrosecondsPerFrameAccumulatorRaw = 0;
             ElapsedMicrosecondsPerFrameAccumulatorCooked = 0;
+
+            gGamePerformanceData.PreviousKernelTime = gGamePerformanceData.KernelTime;
+            gGamePerformanceData.PreviousUserTime = gGamePerformanceData.UserTime;
+            gGamePerformanceData.PreviousSystemTime = gGamePerformanceData.CurrentSystemTime;
+
         }
     }
 
@@ -430,6 +448,10 @@ void RenderGameGraphics(void)
         sprintf_s(Buffer, _countof(Buffer), "MemInfo: %lu \n", gGamePerformanceData.MemInfo.PagefileUsage / 1024);
 
         TextOutA(DeviceContext, 0, 98, Buffer, (int)strlen(Buffer));
+
+        sprintf_s(Buffer, _countof(Buffer), "CPU Usage: %0.02f \n", gGamePerformanceData.CPUPercentage);
+
+        TextOutA(DeviceContext, 0, 114, Buffer, (int)strlen(Buffer));
 
 
     }
