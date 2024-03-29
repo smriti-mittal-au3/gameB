@@ -449,7 +449,7 @@ void RenderGameGraphics(void)
 
         TextOutA(DeviceContext, 0, 98, Buffer, (int)strlen(Buffer));
 
-        sprintf_s(Buffer, _countof(Buffer), "CPU Usage: %0.02f \n", gGamePerformanceData.CPUPercentage);
+        sprintf_s(Buffer, _countof(Buffer), "CPU Usage: %0.02f %% \n", gGamePerformanceData.CPUPercentage);
 
         TextOutA(DeviceContext, 0, 114, Buffer, (int)strlen(Buffer));
 
