@@ -1,11 +1,14 @@
 //#pragma warning(push, 3)
 //#pragma warning(disable : 4668)
 
+#pragma comment(lib, "Winmm.lib")
+
 #include <windows.h> 
 #include <stdint.h>
 #include <stdio.h>
 #include <emmintrin.h>
 #include <Psapi.h>
+//#include <timeapi.h>
 
 //#pragma warning(pop)
 
@@ -34,8 +37,43 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     int64_t ElapsedMicrosecondsPerFrameAccumulatorCooked = 0;
     int64_t ElapsedMicrosecondsPerFrameAccumulatorRaw = 0;
 
+    FILETIME CreationTime = { 0 };
+    FILETIME ExitTime = { 0 };
+    int64_t UserTime = 0;
+    int64_t KernelTime = 0;
+    int64_t PreviousUserTime = 0;
+    int64_t PreviousKernelTime = 0;
+
+    int64_t CurrentSystemTime = 0;
+    int64_t PreviousSystemTime = 0;
+
     TIMECAPS t = { 0 };
     //timeGetDevCaps();
+
+        //if setting timer, then let go of all that logic ?
+    if (timeBeginPeriod(1) == TIMERR_NOCANDO)
+    {
+
+        MessageBoxA(NULL, "Couldn't set timer resolution", "Error!", MB_ICONEXCLAMATION | MB_OK);
+
+        goto Exit;
+    }
+
+    if (SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS) == 0)
+    {
+
+        MessageBoxA(NULL, "Couldn't set process priority", "Error!", MB_ICONEXCLAMATION | MB_OK);
+
+        goto Exit;
+    }
+
+    if (SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST) == 0)
+    {
+
+        MessageBoxA(NULL, "Couldn't set thread priority", "Error!", MB_ICONEXCLAMATION | MB_OK);
+
+        goto Exit;
+    }
 
     if (GameIsAlreadyRunning() == TRUE)
     {
@@ -135,6 +173,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
         NtQueryTimerResolution(&gGamePerformanceData.MaximumResolution, &gGamePerformanceData.MinimumResolution, &gGamePerformanceData.CurrentResolution);
     }
+
   
 
     while (gGameIsRunning == TRUE)
@@ -189,13 +228,13 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
         {
             K32GetProcessMemoryInfo(GetCurrentProcess(), &gGamePerformanceData.MemInfo, sizeof(PROCESS_MEMORY_COUNTERS));
 
-            GetProcessTimes(GetCurrentProcess(), &gGamePerformanceData.CreationTime, &gGamePerformanceData.ExitTime, &gGamePerformanceData.KernelTime, &gGamePerformanceData.UserTime);
-            GetSystemTimeAsFileTime((FILETIME*)&gGamePerformanceData.CurrentSystemTime);
-            gGamePerformanceData.CPUPercentage = (double)(gGamePerformanceData.UserTime + gGamePerformanceData.KernelTime \
-                - gGamePerformanceData.PreviousKernelTime - \
-                gGamePerformanceData.PreviousUserTime);
-            gGamePerformanceData.CPUPercentage /= (gGamePerformanceData.CurrentSystemTime - \
-                gGamePerformanceData.PreviousSystemTime);
+            GetProcessTimes(GetCurrentProcess(), &CreationTime, &ExitTime, &KernelTime, &UserTime);
+            GetSystemTimeAsFileTime((FILETIME*)&CurrentSystemTime);
+            gGamePerformanceData.CPUPercentage = (double)(UserTime + KernelTime \
+                - PreviousKernelTime - \
+                PreviousUserTime);
+            gGamePerformanceData.CPUPercentage /= (CurrentSystemTime - \
+                PreviousSystemTime);
             gGamePerformanceData.CPUPercentage /= gGamePerformanceData.SystemInfo.dwNumberOfProcessors;
 
             gGamePerformanceData.CPUPercentage *= 100;
@@ -205,9 +244,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
             ElapsedMicrosecondsPerFrameAccumulatorRaw = 0;
             ElapsedMicrosecondsPerFrameAccumulatorCooked = 0;
 
-            gGamePerformanceData.PreviousKernelTime = gGamePerformanceData.KernelTime;
-            gGamePerformanceData.PreviousUserTime = gGamePerformanceData.UserTime;
-            gGamePerformanceData.PreviousSystemTime = gGamePerformanceData.CurrentSystemTime;
+            PreviousKernelTime = KernelTime;
+            PreviousUserTime = UserTime;
+            PreviousSystemTime =CurrentSystemTime;
 
         }
     }
@@ -228,6 +267,9 @@ LRESULT __stdcall WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_CLOSE:
         gGameIsRunning = FALSE;
         PostQuitMessage(0);
+        break;
+    case WM_ACTIVATE:
+        ShowCursor(FALSE);
         break;
     case WM_DESTROY:
         break;

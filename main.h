@@ -13,7 +13,7 @@
 
 #define CALCULATE_AVG_FPS_EVERY_X_FRAMES	120
 
-#define TARGET_MICROSECONDS_PER_FRAME 16667
+#define TARGET_MICROSECONDS_PER_FRAME 16667ULL
 
 
 //#define int GAME_NAME = "GAME_B_";
@@ -62,16 +62,6 @@ typedef struct {
 
 	DWORD ProcessHandleCount;
 	PROCESS_MEMORY_COUNTERS_EX MemInfo;
-
-	FILETIME CreationTime;
-	FILETIME ExitTime;
-	int64_t UserTime;
-	int64_t KernelTime;
-	int64_t PreviousUserTime;
-	int64_t PreviousKernelTime;
-
-	int64_t CurrentSystemTime;
-	int64_t PreviousSystemTime;
 
 	double CPUPercentage;
 
