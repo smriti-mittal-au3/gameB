@@ -20,6 +20,7 @@ HWND gGameWindow;
 GAMEBITMAPINFO gGameBitMap = { 0 };
 GAMEPERFDATA gGamePerformanceData = { 0 };
 PLAYER gPlayer;
+BOOL gGameWindowInFocus;
 
 
 
@@ -269,8 +270,17 @@ LRESULT __stdcall WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         PostQuitMessage(0);
         break;
     case WM_ACTIVATE:
+    {
+        if (wParam == 0)
+        {
+            gGameWindowInFocus = FALSE;
+        }
+        else {
+            gGameWindowInFocus = TRUE;
+        }
         ShowCursor(FALSE);
         break;
+    }
     case WM_DESTROY:
         break;
     default:
@@ -357,6 +367,10 @@ BOOL GameIsAlreadyRunning(void)
 
 VOID ProcessPlayerInput(void)
 {
+    if (gGameWindowInFocus == FALSE)
+    {
+        return;
+    }
  
     int16_t EscapeKeyIsDown = GetAsyncKeyState(VK_ESCAPE);
     int16_t DebugKeyIsDown = GetAsyncKeyState(VK_F11);
