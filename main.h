@@ -15,6 +15,34 @@
 
 #define TARGET_MICROSECONDS_PER_FRAME 16667ULL
 
+#define SUIT_0 0
+#define SUIT_1 1
+#define SUIT_2 2
+
+#define FACING_DOWN_0	0
+
+#define FACING_DOWN_1	1
+
+#define FACING_DOWN_2	2
+
+#define FACING_LEFT_0	3
+
+#define FACING_LEFT_1	4
+
+#define FACING_LEFT_2	5
+
+#define FACING_RIGHT_0	6
+
+#define FACING_RIGHT_1	7
+
+#define FACING_RIGHT_2	8
+
+#define FACING_UPWARD_0	9
+
+#define FACING_UPWARD_1	10
+
+#define FACING_UPWARD_2	11
+
 
 //#define int GAME_NAME = "GAME_B_";
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -24,13 +52,15 @@ void RenderGameGraphics(void);
 BOOL GameIsAlreadyRunning(void);
 void ClearScreen(__m128i * Pixel128);
 
+DWORD Load32BPPBitmapFromFile(_In_ char* FileName, _Inout_ GAMEBITMAPINFO * GameBitmap);
+DWORD InitializeHero(void);
 
 typedef LONG(NTAPI* _NtQueryTimerResolution)(OUT PULONG MinimumResolution, OUT PULONG MaximumResolution, OUT PULONG CurrentResolution);
 _NtQueryTimerResolution NtQueryTimerResolution;
 
 //what is DWORD man
 typedef struct { 
-	BITMAPINFO bitmapinfo;
+	BITMAPINFO Bitmapinfo;
 	//4 bytes padding
 	void* Memory;
 } GAMEBITMAPINFO;
@@ -71,7 +101,8 @@ typedef struct {
 } GAMEPERFDATA;
 
 
-typedef struct PLAYER {
+typedef struct HERO {
 	int32_t WorldPosX;
 	int32_t WorldPosY;
-} PLAYER;
+	GAMEBITMAPINFO Sprite[3][12];
+} HERO;

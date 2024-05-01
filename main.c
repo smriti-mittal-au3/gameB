@@ -19,7 +19,7 @@ BOOL gGameIsRunning = FALSE;
 HWND gGameWindow;
 GAMEBITMAPINFO gGameBitMap = { 0 };
 GAMEPERFDATA gGamePerformanceData = { 0 };
-PLAYER gPlayer;
+HERO gPlayer;
 BOOL gGameWindowInFocus;
 
 
@@ -112,15 +112,15 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     );
    
 
-    gGameBitMap.bitmapinfo.bmiHeader.biSize = sizeof(gGameBitMap.bitmapinfo.bmiHeader);
-    gGameBitMap.bitmapinfo.bmiHeader.biPlanes = 1;
+    gGameBitMap.Bitmapinfo.bmiHeader.biSize = sizeof(gGameBitMap.Bitmapinfo.bmiHeader);
+    gGameBitMap.Bitmapinfo.bmiHeader.biPlanes = 1;
 
 
-    gGameBitMap.bitmapinfo.bmiHeader.biWidth = GAME_RES_WIDTH;
-    gGameBitMap.bitmapinfo.bmiHeader.biHeight = GAME_RES_HEIGHT;
+    gGameBitMap.Bitmapinfo.bmiHeader.biWidth = GAME_RES_WIDTH;
+    gGameBitMap.Bitmapinfo.bmiHeader.biHeight = GAME_RES_HEIGHT;
 
-    gGameBitMap.bitmapinfo.bmiHeader.biBitCount = GAME_BPP;
-    gGameBitMap.bitmapinfo.bmiHeader.biCompression = BI_RGB;
+    gGameBitMap.Bitmapinfo.bmiHeader.biBitCount = GAME_BPP;
+    gGameBitMap.Bitmapinfo.bmiHeader.biCompression = BI_RGB;
 
 
     gGameBitMap.Memory = VirtualAlloc(NULL, GAME_DRAWING_AREA_MEMORY_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
@@ -146,6 +146,13 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
     gPlayer.WorldPosY = 15;
 
     
+    if (InitializeHero() != ERROR_SUCCESS)
+    {
+        MessageBoxA(NULL, "Failed to initialize hero!", "Error!", MB_ICONEXCLAMATION | MB_OK);
+
+        goto Exit;
+
+    }
 
     gGameIsRunning = TRUE;
 
@@ -417,6 +424,140 @@ VOID ProcessPlayerInput(void)
 
 }
 
+
+DWORD Load32BPPBitmapFromFile(_In_ char* FileName, _Inout_ GAMEBITMAPINFO* GameBitmap)
+{
+    DWORD Error = ERROR_SUCCESS;
+
+    HANDLE FileHandle = INVALID_HANDLE_VALUE;
+
+    WORD BitmapHeader = 0;
+
+    DWORD PixelDataOffset = 0;
+
+    DWORD NumberOfBytesRead = 2;
+
+    //Get file handle of an existing file
+    if ((FileHandle = CreateFileA(FileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE)
+    {
+        Error = GetLastError();
+
+        goto Exit;
+    }
+
+    //First 2 bytes tell file type, "BM". Store this "BM" value in a normal variable BitMapHeader
+    //Size is 2 bytes hence using WORD. DWORD is 4 bytes = 32 bits
+    if (ReadFile(FileHandle, &BitmapHeader, 2, &NumberOfBytesRead, NULL) == 0)
+    {
+        Error = GetLastError();
+
+        goto Exit;
+    }
+
+    //Is a BMP file
+    if (BitmapHeader != 0x4d42) // "BM" backwards
+    {
+        Error = ERROR_FILE_INVALID;
+
+        goto Exit;
+    }
+
+    //Put cursor at offset = 10
+    if (SetFilePointer(FileHandle, 0xA, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+    {
+        Error = GetLastError();
+
+        goto Exit;
+    }
+
+    //At 10 offset, you get into about the offset at while actual file img is present.
+    //This is 4 bytes hence, using sizeof(DWORD)
+    if (ReadFile(FileHandle, &PixelDataOffset, sizeof(DWORD), &NumberOfBytesRead, NULL) == 0)
+    {
+        Error = GetLastError();
+
+        goto Exit;
+    }
+
+    //Set file pointer to 0E, tells size of header
+    if (SetFilePointer(FileHandle, 0xE, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+    {
+        Error = GetLastError();
+
+        goto Exit;
+    }
+
+    //Weren't at offset of 0E, it had just the size of header
+    //But here it looks like, it has the whole header, which is what we are storing in our var
+    //Or header size has many fields each telling size of sth or the other
+    //and the header size is a data structure in itself ?
+    //e.g. imgSize, etc 
+    if (ReadFile(FileHandle, &GameBitmap.Bitmapinfo.bmiHeader, sizeof(BITMAPINFOHEADER), &NumberOfBytesRead, NULL) == 0)
+    {
+        Error = GetLastError();
+
+        goto Exit;
+    }
+
+    //Allocate heap memory of img size to Memory
+    if ((GameBitmap.Memory = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, GameBitmap.BitmapInfo.bmiHeader.biSizeImage)) == NULL)
+    {
+        Error = ERROR_NOT_ENOUGH_MEMORY;
+
+        goto Exit;
+    }
+
+    //Actual file data starts from pixelDataOffset value we got earlier
+    //Hence now setting file pointer to that position
+    if (SetFilePointer(FileHandle, PixelDataOffset, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
+    {
+        Error = GetLastError();
+
+        goto Exit;
+    }
+
+    //Store img in Memory
+    if (ReadFile(FileHandle, GameBitmap.Memory, GameBitmap.BitmapInfo.bmiHeader.biSizeImage, &NumberOfBytesRead, NULL) == 0)
+    {
+        Error = GetLastError();
+
+        goto Exit;
+    }
+
+
+Exit:
+    if (FileHandle && (FileHandle != INVALID_HANDLE_VALUE))
+    {
+        //Close the file
+        CloseHandle(FileHandle);
+    }
+
+    return(Error);
+}
+
+
+DWORD InitializeHero(void)
+{
+    DWORD Error = ERROR_SUCCESS;
+
+    gPlayer.WorldPosX = 25;
+
+    gPlayer.WorldPosX = 25;
+
+    if ((Error = Load32BppBitmapFromFile("C:\\Users\\mitta\\OneDrive\\Desktop\\GameB\\Assets\\Sprite-004.bmp", &gPlayer.Sprite[SUIT_0][FACING_DOWN_0])) != ERROR_SUCCESS)
+    {
+        MessageBoxA(NULL, "Load32BppBitmapFromFile failed!", "Error!", MB_ICONEXCLAMATION | MB_OK);
+
+        goto Exit;
+    }
+
+Exit:
+
+    return(Error);
+}
+
+
+
 void RenderGameGraphics(void)
 {
 
@@ -448,7 +589,7 @@ void RenderGameGraphics(void)
         GAME_RES_WIDTH, 
         GAME_RES_HEIGHT, 
         gGameBitMap.Memory, 
-        &gGameBitMap.bitmapinfo, 
+        &gGameBitMap.Bitmapinfo, 
         DIB_RGB_COLORS, 
         SRCCOPY);
 
