@@ -492,7 +492,7 @@ DWORD Load32BPPBitmapFromFile(_In_ char* FileName, _Inout_ GAMEBITMAPINFO* GameB
     //Or header size has many fields each telling size of sth or the other
     //and the header size is a data structure in itself ?
     //e.g. imgSize, etc 
-    if (ReadFile(FileHandle, &GameBitmap.Bitmapinfo.bmiHeader, sizeof(BITMAPINFOHEADER), &NumberOfBytesRead, NULL) == 0)
+    if (ReadFile(FileHandle, &GameBitmap->Bitmapinfo.bmiHeader, sizeof(BITMAPINFOHEADER), &NumberOfBytesRead, NULL) == 0)
     {
         Error = GetLastError();
 
@@ -500,7 +500,7 @@ DWORD Load32BPPBitmapFromFile(_In_ char* FileName, _Inout_ GAMEBITMAPINFO* GameB
     }
 
     //Allocate heap memory of img size to Memory
-    if ((GameBitmap.Memory = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, GameBitmap.BitmapInfo.bmiHeader.biSizeImage)) == NULL)
+    if ((GameBitmap->Memory = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, GameBitmap->Bitmapinfo.bmiHeader.biSizeImage)) == NULL)
     {
         Error = ERROR_NOT_ENOUGH_MEMORY;
 
@@ -517,7 +517,7 @@ DWORD Load32BPPBitmapFromFile(_In_ char* FileName, _Inout_ GAMEBITMAPINFO* GameB
     }
 
     //Store img in Memory
-    if (ReadFile(FileHandle, GameBitmap.Memory, GameBitmap.BitmapInfo.bmiHeader.biSizeImage, &NumberOfBytesRead, NULL) == 0)
+    if (ReadFile(FileHandle, GameBitmap->Memory, GameBitmap->Bitmapinfo.bmiHeader.biSizeImage, &NumberOfBytesRead, NULL) == 0)
     {
         Error = GetLastError();
 
